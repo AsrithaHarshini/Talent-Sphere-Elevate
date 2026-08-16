@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-3">
+    <h3 class="text-white">Knowledge Base Vector Search</h3>
+    <p class="text-muted">Query ChromaDB to inspect retrieved chunks, embeddings, and similarity scores.</p>
+</div>
+
+<div class="glass-card rounded-4 p-4 mb-4">
+    <form method="POST" action="{{ url_for('admin.knowledge_base') }}">
+        <div class="input-group">
+            <input type="text" class="form-control bg-dark text-white border-secondary" name="query" value="{{ query }}" placeholder="Type query to test vector retrieval..." required>
+            <button class="btn btn-primary px-4" type="submit"><i class="fas fa-search me-1"></i> Search Vector DB</button>
+        </div>
+    </form>
+</div>
+
+{% if results is not none %}
+<h4 class="text-white mb-3">Search Results ({{ results|length }} Chunks Retrieved)</h4>
+<div class="row">
+    {% for res in results %}
+    <div class="col-md-6 mb-3">
+        <div class="glass-card rounded-4 p-3 h-100 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-primary"><i class="fas fa-file-alt me-1"></i> {{ res.metadata.filename }}</span>
+                <span class="small text-info">Page: {{ res.metadata.page }} | Chunk: {{ res.metadata.chunk_number }}</span>
+            </div>
+            <p class="text-white-50 bg-dark p-2 rounded small font-monospace">{{ res.text }}</p>
+            {% if res.distance %}
+            <div class="small text-secondary">Similarity Distance: <code>{{ res.distance | round(4) if res.distance else 'N/A' }}</code></div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-warning">No matching vector chunks found.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

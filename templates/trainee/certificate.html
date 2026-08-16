@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center my-4">
+    <div class="col-md-10 col-lg-8">
+        <div class="glass-card rounded-4 p-5 text-center position-relative border border-warning shadow-lg">
+            <div class="position-absolute top-0 end-0 m-3">
+                <span class="badge bg-warning text-dark p-2 fs-6"><i class="fas fa-check-double me-1"></i> VERIFIED CERTIFICATE</span>
+            </div>
+
+            <i class="fas fa-award text-warning display-1 mb-3"></i>
+            <h5 class="text-uppercase text-secondary tracking-wide">Certificate of Achievement</h5>
+            <h1 class="text-white fw-bold my-3 display-5">{{ current_user.name }}</h1>
+            <p class="text-white-50 fs-5 mb-4">
+                Has successfully completed the enterprise training program for<br>
+                <strong class="text-warning fs-4">{{ path.title }}</strong>
+            </p>
+
+            <div class="row g-3 justify-content-center my-4 border-top border-bottom border-secondary py-3">
+                <div class="col-4">
+                    <small class="text-muted d-block">Department</small>
+                    <strong class="text-white">{{ current_user.department or 'Engineering' }}</strong>
+                </div>
+                <div class="col-4">
+                    <small class="text-muted d-block">Overall Performance</small>
+                    <strong class="text-success">{{ cert.score_percentage }}%</strong>
+                </div>
+                <div class="col-4">
+                    <small class="text-muted d-block">Certificate ID</small>
+                    <code class="text-info">{{ cert.certificate_code }}</code>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-2">
+                <div class="text-start">
+                    <small class="text-muted d-block">Issued On</small>
+                    <span class="text-white small">{{ cert.issue_date.strftime('%B %d, %Y') }}</span>
+                </div>
+                <div>
+                    <button class="btn btn-warning px-4 rounded-pill fw-bold" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Print / Download Certificate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

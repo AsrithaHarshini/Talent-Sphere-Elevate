@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-3">
+    <h3 class="text-white">My Exams & Assessments</h3>
+    <p class="text-muted">Take assigned exams and view AI-generated performance feedback.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <h4 class="text-white mb-3">Assigned Exams</h4>
+        {% for a in assignments %}
+        <div class="glass-card rounded-4 p-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="text-white m-0">{{ a.exam.title }}</h5>
+                {% if a.exam.id in attempted_ids %}
+                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Completed</span>
+                {% else %}
+                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending</span>
+                {% endif %}
+            </div>
+            <p class="text-muted small mb-3"><i class="fas fa-file-pdf me-1"></i> Source: {{ a.exam.document.filename if a.exam.document else 'General Knowledge' }}</p>
+            
+            {% if a.exam.id not in attempted_ids %}
+            <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#takeExamModal_{{ a.exam.id }}">
+                <i class="fas fa-pen me-1"></i> Start Exam
+            </button>
+            {% else %}
+            <button class="btn btn-outline-secondary rounded-pill px-4" disabled>Submitted</button>
+            {% endif %}
+        </div>
+
+        <!-- Take Exam Modal -->
+        {% if a.exam.id not in attempted_ids %}
+        <div class="modal fade exam-fullscreen-modal" id="takeExamModal_{{ a.exam.id }}" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header border-secondary bg-black py-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="modal-title text-info fw-bold mb-0"><i class="fas fa-shield-alt me-2 text-warning"></i> PROCTORED EXAM: {{ a.exam.title }}</h5>
+                            <span class="badge bg-danger text-uppercase px-3 py-2"><i class="fas fa-compress-arrows-alt me-1"></i> Full Screen Mode Active</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark fs-6" id="violationBadge_{{ a.exam.id }}"><i class="fas fa-exclamation-triangle me-1"></i> Violations: 0 / 3</span>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ url_for('trainee.exams') }}" id="examForm_{{ a.exam.id }}">
+                        <div class="modal-body p-4 overflow-auto">
+                            <input type="hidden" name="exam_id" value="{{ a.exam.id }}">
+                            <input type="hidden" name="violation_count" id="violationCountInput_{{ a.exam.id }}" value="0">
+                            
+                            <div class="alert alert-warning border-warning d-flex align-items-center gap-3 mb-4 shadow-sm">
+                                <i class="fas fa-user-shield fs-2 text-warning"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Anti-Cheating Policy & Full Screen Enforcement</h6>
+                                    <p class="mb-0 small text-white-50">Exiting full screen mode or switching browser tabs will trigger a security violation. On <strong>3 violations</strong>, your exam will be automatically submitted!</p>
+                                </div>
+                            </div>
+
+                            {% set questions = a.exam.questions_json|from_json %}
+                            {% for q in questions %}
+                            {% set q_idx = loop.index0 %}
+                            <div class="card glass-card p-4 mb-4 border-secondary shadow-sm rounded-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="badge bg-primary text-uppercase px-3 py-1 fw-bold">
+                                        {{ q.section if q.section else ('Section B: Fill in the Blanks' if (q.type == 'fill_blank' or 'blank_answer' in q) else 'Section A: Multiple Choice Question') }}
+                                    </span>
+                                    <span class="text-muted small">Question {{ loop.index }} of {{ questions|length }}</span>
+                                </div>
+                                <h5 class="text-white mb-3 fw-semibold">Q{{ loop.index }}: {{ q.question }}</h5>
+
+                                {% if q.type == 'fill_blank' or 'blank_answer' in q %}
+                                <!-- Fill in the Blanks Section -->
+                                <div class="form-group my-3">
+                                    <label class="form-label text-info fw-bold small"><i class="fas fa-pen-fancy me-1"></i> Your Answer (Fill in the blank):</label>
+                                    <input type="text" class="form-control form-control-lg bg-dark text-white border-secondary rounded-3" name="q_{{ q_idx }}" placeholder="Type your answer word here..." required autocomplete="off">
+                                </div>
+                                {% else %}
+                                <!-- MCQ Section -->
+                                <div class="row g-2">
+                                    {% for opt in q.options %}
+                                    <div class="col-12 col-md-6">
+                                        <div class="form-check p-3 bg-dark bg-opacity-75 rounded-3 border border-secondary">
+                                            <input class="form-check-input ms-1 me-2" type="radio" name="q_{{ q_idx }}" id="q_{{ q_idx }}_{{ loop.index0 }}" value="{{ loop.index0 }}" required>
+                                            <label class="form-check-label text-white w-100" for="q_{{ q_idx }}_{{ loop.index0 }}">
+                                                {{ opt }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="modal-footer border-secondary bg-black py-3">
+                            <button type="submit" class="btn btn-success btn-lg px-5 rounded-pill shadow"><i class="fas fa-paper-plane me-2"></i> Submit Exam Answers</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="glass-card rounded-4 p-4 text-center text-muted">
+            No exams currently assigned to you.
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-5">
+        <h4 class="text-white mb-3">Recent Results & AI Feedback</h4>
+        {% for r in results %}
+        <div class="glass-card rounded-4 p-4 mb-3 border-start border-4 border-{{ 'success' if r.percentage >= 60 else 'danger' }}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-white m-0">{{ r.exam.title }}</h6>
+                <span class="badge bg-{{ 'success' if r.percentage >= 60 else 'danger' }} fs-6">{{ r.percentage }}%</span>
+            </div>
+            <div class="small text-muted mb-2">Score: {{ r.score }}/{{ r.total }} | Date: {{ r.completion_date.strftime('%Y-%m-%d') }}</div>
+            {% if r.ai_feedback %}
+            <div class="p-3 bg-dark rounded text-white-50 small mt-2">
+                <strong class="text-info"><i class="fas fa-robot me-1"></i> AI Feedback:</strong><br>
+                {{ r.ai_feedback }}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="glass-card rounded-4 p-4 text-center text-muted">
+            No exam results recorded yet.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Security Violation Alert Modal -->
+<div class="modal fade" id="violationWarningModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-danger text-white rounded-4 shadow-lg border-0">
+            <div class="modal-body text-center p-4">
+                <i class="fas fa-exclamation-triangle fs-1 text-warning mb-3"></i>
+                <h4 class="fw-bold mb-2">SECURITY VIOLATION DETECTED</h4>
+                <p class="mb-3" id="violationModalText">Leaving full screen or switching browser tabs is strictly forbidden during exams!</p>
+                <div class="badge bg-black text-warning fs-6 py-2 px-4 rounded-pill mb-3" id="violationModalBadge">Warning 1 of 3</div>
+                <div>
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-bold text-danger" onclick="resumeFullScreenExam()">I Understand & Return to Exam</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let activeExamId = null;
+let activeViolationCount = 0;
+let isExamActive = false;
+
+document.querySelectorAll('.modal.exam-fullscreen-modal').forEach(modalEl => {
+    modalEl.addEventListener('show.bs.modal', function () {
+        activeExamId = this.id.replace('takeExamModal_', '');
+        activeViolationCount = 0;
+        isExamActive = true;
+        updateViolationUI();
+
+        // Enter Browser Full Screen
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.log(err));
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        }
+    });
+
+    modalEl.addEventListener('hide.bs.modal', function (e) {
+        if (isExamActive && activeViolationCount < 3) {
+            if (!confirm("Are you sure you want to exit? Your exam progress will not be saved.")) {
+                e.preventDefault();
+            } else {
+                isExamActive = false;
+                if (document.exitFullscreen) { document.exitFullscreen().catch(err => {}); }
+            }
+        }
+    });
+});
+
+function handleExamViolation(reason) {
+    if (!isExamActive || !activeExamId) return;
+
+    activeViolationCount++;
+    updateViolationUI();
+
+    const textEl = document.getElementById('violationModalText');
+    const badgeEl = document.getElementById('violationModalBadge');
+
+    textEl.innerText = `Violation Reason: ${reason}. Switching tabs or exiting full screen is strictly prohibited!`;
+    badgeEl.innerText = `Warning ${activeViolationCount} of 3`;
+
+    if (activeViolationCount >= 3) {
+        alert("SECURITY WARNING: You have reached 3 security violations! Your exam is being automatically submitted now.");
+        isExamActive = false;
+        const form = document.getElementById(`examForm_${activeExamId}`);
+        if (form) form.submit();
+    } else {
+        const warningModal = new bootstrap.Modal(document.getElementById('violationWarningModal'));
+        warningModal.show();
+    }
+}
+
+function resumeFullScreenExam() {
+    const warningModalEl = document.getElementById('violationWarningModal');
+    const modalInstance = bootstrap.Modal.getInstance(warningModalEl);
+    if (modalInstance) modalInstance.hide();
+
+    const elem = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {});
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        }
+    }
+}
+
+function updateViolationUI() {
+    if (!activeExamId) return;
+    const badge = document.getElementById(`violationBadge_${activeExamId}`);
+    const input = document.getElementById(`violationCountInput_${activeExamId}`);
+    if (badge) badge.innerText = `Violations: ${activeViolationCount} / 3`;
+    if (input) input.value = activeViolationCount;
+}
+
+// Anti-Cheating Event Listeners: Tab Switch & Fullscreen Exit
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden && isExamActive) {
+        handleExamViolation("Switched browser tab or minimized window");
+    }
+});
+
+document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement && isExamActive) {
+        handleExamViolation("Exited Full Screen Mode");
+    }
+});
+
+document.addEventListener('webkitfullscreenchange', function() {
+    if (!document.webkitFullscreenElement && isExamActive) {
+        handleExamViolation("Exited Full Screen Mode");
+    }
+});
+</script>
+{% endblock %}

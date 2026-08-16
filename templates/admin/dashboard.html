@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-3 my-2">
+    <div class="col-md-3">
+        <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ total_users }}</h3>
+                <p class="fs-5 text-muted">Total Users</p>
+            </div>
+            <i class="fas fa-users fs-1 text-primary border rounded-full p-3"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ uploaded_pdfs }}</h3>
+                <p class="fs-5 text-muted">Documents</p>
+            </div>
+            <i class="fas fa-file-pdf fs-1 text-danger border rounded-full p-3"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ total_chats }}</h3>
+                <p class="fs-5 text-muted">AI Queries</p>
+            </div>
+            <i class="fas fa-robot fs-1 text-info border rounded-full p-3"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+            <div>
+                <h3 class="fs-2">{{ avg_score }}%</h3>
+                <p class="fs-5 text-muted">Avg Score</p>
+            </div>
+            <i class="fas fa-chart-line fs-1 text-success border rounded-full p-3"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Admin AI Assistant Quick Banner -->
+<div class="row my-3">
+    <div class="col-12">
+        <div class="glass-card p-4 rounded-4 text-white d-flex justify-content-between align-items-center flex-wrap gap-3" style="border: 1px solid var(--primary-color);">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fas fa-robot text-info me-2"></i> Admin AI Assistant Room Active</h4>
+                <p class="text-white-50 mb-0">Query uploaded documents, summarize trainee performance & exam scores, or speak voice commands to auto-generate exams.</p>
+            </div>
+            <a href="{{ url_for('admin.chat') }}" class="btn btn-primary px-4 py-2 rounded-pill fw-bold"><i class="fas fa-comments me-2"></i> Launch Admin AI Assistant</a>
+        </div>
+    </div>
+</div>
+
+<div class="row my-5">
+    <div class="col-md-6">
+        <h3 class="fs-4 mb-3 text-white">Upload Training Document</h3>
+        <div class="glass-card p-4 rounded-4 text-center" id="drop-zone">
+            <i class="fas fa-cloud-upload-alt fs-1 text-primary mb-3"></i>
+            <h5>Drag & Drop PDF here</h5>
+            <p class="text-muted">or click to browse</p>
+            <input type="file" id="file-input" class="d-none" accept=".pdf">
+            <button class="btn btn-outline-primary" onclick="document.getElementById('file-input').click()">Select File</button>
+            <div id="upload-status" class="mt-3"></div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <h3 class="fs-4 mb-3 text-white">Platform Usage</h3>
+        <div class="glass-card p-4 rounded-4">
+            <canvas id="usageChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Chart.js
+    var ctx = document.getElementById('usageChart').getContext('2d');
+    var usageChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Active Users',
+                data: [12, 19, 3, 5, 2, 3, 7],
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                },
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: 'white' } }
+            }
+        }
+    });
+
+    // File Upload Logic
+    const fileInput = document.getElementById('file-input');
+    fileInput.addEventListener('change', function() {
+        if(this.files.length > 0) {
+            uploadFile(this.files[0]);
+        }
+    });
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const statusDiv = document.getElementById('upload-status');
+        statusDiv.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p>Processing and Vectorizing...</p>';
+
+        fetch('/admin/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                statusDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
+            } else {
+                statusDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            statusDiv.innerHTML = `<div class="alert alert-danger">Upload failed.</div>`;
+        });
+    }
+</script>
+{% endblock %}

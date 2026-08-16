@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if path %}
+<div class="glass-card rounded-4 p-4 my-3">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <span class="badge bg-primary mb-2"><i class="fas fa-certificate me-1"></i> Assigned Learning Roadmap</span>
+            <h2 class="text-white fw-bold">{{ path.title }}</h2>
+            <p class="text-muted mb-3">{{ path.description }}</p>
+            <div class="d-flex gap-3">
+                <span class="badge bg-dark border border-secondary p-2"><i class="fas fa-fire text-danger me-1"></i> Streak: {{ progress.streak_count }} Days</span>
+                <span class="badge bg-dark border border-secondary p-2"><i class="fas fa-calendar-check text-success me-1"></i> Current Week: {{ progress.current_week }}</span>
+                <span class="badge bg-dark border border-secondary p-2"><i class="fas fa-clock text-info me-1"></i> Day: {{ progress.current_day }} / 6</span>
+            </div>
+        </div>
+        <div class="col-md-4 text-center border-start border-secondary">
+            <a href="{{ url_for('trainee.certificate', path_id=path.id) }}" class="btn btn-outline-warning rounded-pill px-4 py-2">
+                <i class="fas fa-award me-1"></i> View Certificate
+            </a>
+        </div>
+    </div>
+</div>
+
+<h3 class="text-white my-4"><i class="fas fa-map-signs me-2 text-warning"></i> Interactive 6-Week Learning Roadmap</h3>
+
+<div class="roadmap-container">
+    {% for week in path.weeks %}
+    <div class="glass-card rounded-4 p-4 mb-4 position-relative border-start border-4 border-{{ 'success' if week.week_number < progress.current_week else ('warning' if week.week_number == progress.current_week else 'secondary') }}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="text-white fw-bold m-0"><i class="fas fa-calendar-alt me-2 text-primary"></i> {{ week.title }}</h4>
+            {% if week.week_number < progress.current_week %}
+            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Week Completed</span>
+            {% elif week.week_number == progress.current_week %}
+            <span class="badge bg-warning text-dark"><i class="fas fa-play-circle me-1"></i> In Progress</span>
+            {% else %}
+            <span class="badge bg-secondary"><i class="fas fa-lock me-1"></i> Locked</span>
+            {% endif %}
+        </div>
+
+        <div class="row g-3">
+            {% for day in week.days %}
+            {% set is_completed = day.id in completed_days %}
+            {% set is_current = (week.week_number == progress.current_week and day.day_number == progress.current_day) %}
+            {% set is_locked = (week.week_number > progress.current_week) or (week.week_number == progress.current_week and day.day_number > progress.current_day and not is_completed) %}
+            
+            <div class="col-md-4 col-lg-2">
+                <div class="glass-card rounded-3 p-3 h-100 text-center border-{{ 'success' if is_completed else ('warning shadow' if is_current else 'secondary') }} opacity-{{ '50' if is_locked else '100' }}">
+                    <div class="mb-2">
+                        {% if is_completed %}
+                        <i class="fas fa-check-circle text-success fs-3"></i>
+                        {% elif is_locked %}
+                        <i class="fas fa-lock text-muted fs-3"></i>
+                        {% else %}
+                        <i class="fas fa-play-circle text-warning fs-3"></i>
+                        {% endif %}
+                    </div>
+                    {% if is_locked %}
+                    <small class="d-block text-muted mb-2">Complete previous activity to unlock</small>
+                    {% else %}
+                    <small class="d-block text-muted text-truncate mb-2">{{ day.title }}</small>
+                    {% endif %}
+                    
+                    {% if not is_locked %}
+                    {% if day.day_type == 'MockInterview' %}
+                    <a href="{{ url_for('trainee.mock_interview', day_id=day.id) }}" class="btn btn-danger btn-sm w-100 rounded-pill mt-auto">
+                        <i class="fas fa-microphone me-1"></i> AI Interview
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('trainee.view_day', day_id=day.id) }}" class="btn btn-primary btn-sm w-100 rounded-pill mt-auto">
+                        <i class="fas fa-book-reader me-1"></i> Start
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <button class="btn btn-outline-secondary btn-sm w-100 rounded-pill mt-auto" disabled>Locked</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="glass-card p-5 text-center text-muted">No active Learning Path assigned to your profile yet.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talent Management Platform for Employee Performance and Career Growth</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        {% if current_user.is_authenticated %}
+        <!-- Sidebar -->
+        <div class="sidebar text-white" id="sidebar-wrapper">
+            <div class="sidebar-heading text-center py-3 primary-text fs-6 fw-bold text-uppercase border-bottom px-2" style="letter-spacing: 0.5px; line-height: 1.3;">
+                <i class="fas fa-chart-line me-1 text-primary"></i>Talent Management Platform
+            </div>
+            <div class="list-group list-group-flush my-3">
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('admin.dashboard') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+                <a href="{{ url_for('admin.learning_paths') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-route me-2"></i>Learning Paths</a>
+                <a href="{{ url_for('admin.chat') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-robot me-2 text-info"></i>AI Assistant</a>
+                <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-users me-2"></i>Users</a>
+                <a href="{{ url_for('admin.documents') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-file-pdf me-2"></i>Documents</a>
+                <a href="{{ url_for('admin.knowledge_base') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-database me-2"></i>Knowledge Base</a>
+                <a href="{{ url_for('admin.exams') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-tasks me-2"></i>Exams</a>
+                <a href="{{ url_for('admin.results') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-chart-bar me-2"></i>Results</a>
+                <a href="{{ url_for('admin.announcements') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-bullhorn me-2"></i>Announcements</a>
+                <a href="{{ url_for('admin.settings') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-cog me-2"></i>Settings</a>
+                {% else %}
+                <a href="{{ url_for('trainee.dashboard') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+                <a href="{{ url_for('trainee.roadmap') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-map-signs me-2"></i>My Roadmap</a>
+                <a href="{{ url_for('trainee.chat') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-robot me-2"></i>AI Assistant</a>
+                <a href="{{ url_for('trainee.documents') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-file-alt me-2"></i>My Documents</a>
+                <a href="{{ url_for('trainee.exams') }}" class="list-group-item list-group-item-action bg-transparent second-text fw-bold"><i class="fas fa-graduation-cap me-2"></i>My Exams</a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="list-group-item list-group-item-action bg-transparent text-danger fw-bold"><i class="fas fa-power-off me-2"></i>Logout</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper" class="w-100">
+            {% if current_user.is_authenticated %}
+            <nav class="navbar navbar-expand-lg py-3 px-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-align-left primary-text fs-4 me-3" id="menu-toggle"></i>
+                    <h2 class="fs-3 m-0 fw-bold" style="color: var(--text-primary);">Elevate <span class="badge bg-primary fs-6">{{ current_user.role|capitalize }}</span></h2>
+                </div>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                        <li class="nav-item me-3">
+                            <a href="{{ url_for('universal_chat') }}" class="btn btn-outline-primary btn-sm rounded-pill fw-bold">
+                                <i class="fas fa-robot me-1 text-info"></i> AI Assistant
+                            </a>
+                        </li>
+                        <li class="nav-item me-3">
+                            <button class="btn btn-outline-secondary btn-sm rounded-circle" id="theme-toggle">
+                                <i class="fas fa-sun" id="theme-icon"></i>
+                            </button>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" style="color: var(--text-primary) !important;">
+                                <i class="fas fa-user-circle fs-5 me-2 text-primary"></i><span class="user-profile-name">{{ current_user.name }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-secondary">
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2 text-danger"></i>Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            {% endif %}
+
+            <div class="container-fluid px-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }} alert-dismissible fade show mt-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <!-- Floating AI Assistant Button for Instant Access -->
+    <a href="{{ url_for('universal_chat') }}" id="floating-ai-btn" class="shadow-lg" title="Open AI Assistant Room">
+        <i class="fas fa-robot fs-4"></i>
+    </a>
+    {% endif %}
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

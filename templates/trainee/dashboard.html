@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-3 my-2">
+    <div class="col-md-4">
+        <div class="p-4 glass-card shadow-sm rounded-4">
+            <h4 class="text-white mb-3">Welcome, {{ current_user.name }}!</h4>
+            <p class="text-muted">You have {{ assignments|length }} assigned documents to review.</p>
+            <a href="{{ url_for('trainee.chat') }}" class="btn btn-primary rounded-pill px-4 py-2 mt-2">
+                <i class="fas fa-robot me-2"></i> Start Learning
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+                    <div>
+                        <h3 class="fs-2">{{ exam_assignments|length }}</h3>
+                        <p class="fs-5 text-muted">Pending Exams</p>
+                    </div>
+                    <i class="fas fa-tasks fs-1 text-warning border rounded-full p-3"></i>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 glass-card shadow-sm d-flex justify-content-around align-items-center rounded">
+                    <div>
+                        <h3 class="fs-2">{{ avg_score }}%</h3>
+                        <p class="fs-5 text-muted">Average Score</p>
+                    </div>
+                    <i class="fas fa-star fs-1 text-success border rounded-full p-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row my-4">
+    <div class="col-md-8">
+        <h3 class="fs-4 mb-3 text-white">Recent Announcements</h3>
+        {% if announcements %}
+            {% for announcement in announcements %}
+            <div class="glass-card p-3 rounded mb-3">
+                <h5 class="text-white">{{ announcement.title }}</h5>
+                <p class="text-muted mb-1">{{ announcement.content }}</p>
+                <small class="text-secondary">{{ announcement.date_posted.strftime('%Y-%m-%d') }}</small>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="glass-card p-4 rounded text-center">
+                <p class="text-muted mb-0">No recent announcements.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <h3 class="fs-4 mb-3 text-white">My Documents</h3>
+        <ul class="list-group list-group-flush glass-card rounded">
+            {% for assignment in assignments %}
+            <li class="list-group-item bg-transparent text-white border-bottom border-secondary d-flex justify-content-between align-items-center">
+                {{ assignment.document.filename }}
+                <span class="badge bg-primary rounded-pill"><i class="fas fa-file-pdf"></i></span>
+            </li>
+            {% else %}
+            <li class="list-group-item bg-transparent text-muted">No documents assigned yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

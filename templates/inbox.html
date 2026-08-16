@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h3 class="text-white fw-bold mb-1"><i class="fas fa-envelope-open-text text-warning me-2"></i> System Email Inbox & Delivery Audit Logs</h3>
+        <p class="text-muted mb-0">Monitor external SMTP Google Mail delivery logs, delivery retry status, and HTML emails dispatched to trainees.</p>
+    </div>
+</div>
+
+{% if email_logs %}
+<!-- Admin SMTP Audit Table -->
+<div class="glass-card rounded-4 p-4 mb-4 border-secondary shadow-lg">
+    <h5 class="text-white fw-bold mb-3"><i class="fas fa-list-alt text-info me-2"></i> SMTP Email Dispatch Audit Logs</h5>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+                <tr class="text-muted border-secondary">
+                    <th>Timestamp</th>
+                    <th>Recipient</th>
+                    <th>Email Type</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Retries</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in email_logs %}
+                <tr>
+                    <td class="small text-white-50">{{ log.sent_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="fw-bold text-white">{{ log.to_email }}</td>
+                    <td><span class="badge bg-secondary">{{ log.email_type }}</span></td>
+                    <td class="text-truncate" style="max-width: 250px;">{{ log.subject }}</td>
+                    <td>
+                        {% if log.status == 'sent' %}
+                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Sent (200 OK)</span>
+                        {% elif log.status == 'retrying' %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-sync fa-spin me-1"></i> Retrying</span>
+                        {% else %}
+                            <span class="badge bg-danger" title="{{ log.error_message }}"><i class="fas fa-exclamation-triangle me-1"></i> Failed</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-dark border border-secondary">{{ log.retry_count }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if notifications %}
+<div class="row g-4">
+    {% for notif in notifications %}
+    <div class="col-12">
+        <div class="glass-card rounded-4 p-4 border-secondary shadow-lg">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary flex-wrap gap-2">
+                <div class="d-flex align-items-center">
+                    {% if notif.notification_type == 'credentials' %}
+                        <span class="badge bg-success me-2 fs-6"><i class="fas fa-key me-1"></i> Account Credentials</span>
+                    {% elif notif.notification_type == 'exam' %}
+                        <span class="badge bg-info text-dark me-2 fs-6"><i class="fas fa-tasks me-1"></i> Exam Notice</span>
+                    {% else %}
+                        <span class="badge bg-primary me-2 fs-6"><i class="fas fa-bell me-1"></i> Notification</span>
+                    {% endif %}
+                    <h5 class="text-white fw-bold mb-0">{{ notif.title }}</h5>
+                </div>
+                <div class="text-white-50 small">
+                    <i class="far fa-clock me-1 text-info"></i> {{ notif.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+                </div>
+            </div>
+
+            <!-- Email HTML Content Container -->
+            <div class="bg-white rounded-3 p-3 text-dark shadow-inner" style="max-height: 450px; overflow-y: auto;">
+                {{ notif.message|safe }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="glass-card rounded-4 p-5 text-center text-muted my-4">
+    <i class="fas fa-envelope-open fs-1 mb-3 text-warning"></i>
+    <h5 class="text-white fw-bold">No Email Messages Found</h5>
+    <p>Your system currently has no recorded credential or exam assignment emails.</p>
+</div>
+{% endif %}
+{% endblock %}

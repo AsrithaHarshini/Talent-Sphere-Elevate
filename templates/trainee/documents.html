@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h3 class="text-white fw-bold mb-1"><i class="fas fa-folder-open text-primary me-2"></i> Admin Assigned Training Documents</h3>
+        <p class="text-muted mb-0">Browse, search, and view all training documents assigned to you by the Admin.</p>
+    </div>
+</div>
+
+<div class="glass-card rounded-4 p-3 mb-4">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fas fa-search"></i></span>
+                <input type="text" id="docSearch" class="form-control bg-dark text-white border-secondary" placeholder="Search by title, topic, domain, or category...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select bg-dark text-white border-secondary" id="categoryFilter">
+                <option value="">All Categories</option>
+                <option value="Course Material">Course Material</option>
+                <option value="General">General</option>
+                <option value="Technical Manual">Technical Manual</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select bg-dark text-white border-secondary" id="domainFilter">
+                <option value="">All Domains</option>
+                <option value="General">General</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Data Science">Data Science</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4" id="documentsGrid">
+    {% for doc in documents_list %}
+    <div class="col-md-6 col-lg-4 doc-item-card" data-category="{{ doc.category }}" data-domain="{{ doc.assigned_domain }}">
+        <div class="glass-card rounded-4 p-4 h-100 d-flex flex-column justify-content-between border-secondary shadow-sm">
+            <div>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-file-pdf fs-2 text-danger"></i>
+                        <div>
+                            <span class="badge bg-primary text-uppercase">{{ doc.category if doc.category else 'Course Material' }}</span>
+                            <span class="badge bg-dark border border-secondary text-info ms-1">{{ doc.assigned_domain if doc.assigned_domain else 'General' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <h5 class="text-white fw-bold doc-title mb-2">{{ doc.filename }}</h5>
+                <p class="text-muted small doc-description mb-3" style="min-height: 40px;">
+                    {{ doc.description if doc.description else 'Comprehensive training material covering core module concepts and domain principles.' }}
+                </p>
+
+                <div class="p-3 bg-dark bg-opacity-75 rounded-3 mb-3 border border-secondary small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted"><i class="fas fa-calendar-alt me-1"></i> Assigned / Upload Date:</span>
+                        <span class="text-white-50">{{ doc.upload_date.strftime('%Y-%m-%d') if doc.upload_date else 'Recent' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted"><i class="fas fa-file-alt me-1"></i> Document Version:</span>
+                        <span class="badge bg-secondary">v{{ doc.version if doc.version else 1 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 border-top border-secondary">
+                <a href="{{ url_for('view_document_embedded', doc_id=doc.id) }}" class="btn btn-outline-info w-100 rounded-pill py-2 fw-semibold" target="_self">
+                    <i class="fas fa-eye me-2"></i> View Document
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="glass-card rounded-4 p-5 text-center text-muted">
+            <i class="fas fa-folder-open fs-1 mb-3 text-secondary"></i>
+            <h5>No Authorized Training Documents Found</h5>
+            <p class="mb-0">Your assigned documents will appear here automatically.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const searchInput = document.getElementById('docSearch');
+    const catFilter = document.getElementById('categoryFilter');
+    const domFilter = document.getElementById('domainFilter');
+
+    function filterDocs() {
+        const query = searchInput.value.toLowerCase();
+        const cat = catFilter.value.toLowerCase();
+        const dom = domFilter.value.toLowerCase();
+
+        document.querySelectorAll('.doc-item-card').forEach(card => {
+            const title = card.querySelector('.doc-title').innerText.toLowerCase();
+            const desc = card.querySelector('.doc-description').innerText.toLowerCase();
+            const cardCat = (card.getAttribute('data-category') || '').toLowerCase();
+            const cardDom = (card.getAttribute('data-domain') || '').toLowerCase();
+
+            const matchesQuery = title.includes(query) || desc.includes(query);
+            const matchesCat = !cat || cardCat.includes(cat);
+            const matchesDom = !dom || cardDom.includes(dom);
+
+            card.style.display = (matchesQuery && matchesCat && matchesDom) ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterDocs);
+    catFilter.addEventListener('change', filterDocs);
+    domFilter.addEventListener('change', filterDocs);
+</script>
+{% endblock %}

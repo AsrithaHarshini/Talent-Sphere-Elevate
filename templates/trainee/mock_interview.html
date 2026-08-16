@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center my-3">
+    <div>
+        <a href="{{ url_for('trainee.roadmap') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fas fa-arrow-left me-1"></i> Back to Roadmap</a>
+        <h3 class="text-white fw-bold"><i class="fas fa-microphone text-danger me-2"></i> Week {{ week.week_number }} AI Mock Interview Room</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="glass-card rounded-4 p-4 mb-4">
+            <div id="interview-stage">
+                <div class="text-center py-4 border-bottom border-secondary mb-4">
+                    <div class="avatar-circle mx-auto bg-primary text-white fs-1 d-flex align-items-center justify-content-center mb-3 shadow-lg" style="width: 80px; height: 80px; border-radius: 50%;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4 class="text-white fw-bold mb-1">AI Technical Interviewer</h4>
+                    <p class="text-muted small mb-3">Interactive Voice & Speech Evaluation Active</p>
+                    <button type="button" class="btn btn-warning btn-sm px-4 rounded-pill fw-bold shadow" onclick="startInterviewAudio()">
+                        <i class="fas fa-volume-up me-2"></i> Start AI Voice Interview (Read Question 1)
+                    </button>
+                </div>
+
+                <div id="question-box" class="p-4 bg-dark rounded-4 mb-4 border border-secondary shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-warning text-dark">Question <span id="q-num">1</span> of {{ questions|length }}</span>
+                        <button type="button" class="btn btn-outline-info btn-sm py-0 px-2" onclick="replayQuestion()">
+                            <i class="fas fa-volume-up me-1"></i> Replay Question
+                        </button>
+                    </div>
+                    <h5 class="text-white fw-bold mb-0" id="current-question">{{ questions[0] }}</h5>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label text-white mb-0">Your Answer (Speak or Type):</label>
+                        <span id="mic-status-badge" class="badge bg-secondary d-none">
+                            <i class="fas fa-microphone me-1"></i> Listening...
+                        </span>
+                    </div>
+                    <div class="input-group">
+                        <button class="btn btn-outline-danger px-3" id="interview-mic-btn" type="button">
+                            <i class="fas fa-microphone me-1"></i> Speak Answer
+                        </button>
+                        <textarea class="form-control bg-dark text-white border-secondary" id="user-answer-text" rows="3" placeholder="Click 'Speak Answer' to talk into your microphone or type your response..."></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-secondary" id="skip-btn" onclick="nextQuestion()">Skip Question</button>
+                    <button class="btn btn-success px-4 fw-bold" id="submit-answer-btn" onclick="submitCurrentAnswer()">
+                        Submit Answer & Next <i class="fas fa-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="result-stage" class="d-none text-center py-4">
+                <i class="fas fa-award text-warning fs-1 mb-3"></i>
+                <h3 class="text-white fw-bold">Mock Interview Complete!</h3>
+                <p class="text-muted">AI is evaluating your technical accuracy, communication, and confidence...</p>
+                <div class="spinner-border text-primary my-3" id="eval-spinner"></div>
+
+                <div id="eval-results" class="d-none text-start mt-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-dark rounded text-center">
+                                <h4 class="text-info" id="res-tech">0%</h4>
+                                <small class="text-muted">Technical Score</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-dark rounded text-center">
+                                <h4 class="text-success" id="res-comm">0%</h4>
+                                <small class="text-muted">Communication Score</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-dark rounded text-center">
+                                <h4 class="text-warning" id="res-conf">0%</h4>
+                                <small class="text-muted">Confidence Score</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-dark rounded text-white-50">
+                        <strong class="text-white">AI Feedback & Action Plan:</strong>
+                        <p id="res-feedback" class="mt-2 mb-0"></p>
+                    </div>
+                    <a href="{{ url_for('trainee.roadmap') }}" class="btn btn-success mt-4 w-100 rounded-pill">Continue Learning Roadmap</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Student Introduction Sidebar (Requirement 25) -->
+        <div class="glass-card rounded-4 p-4 mb-4 border border-secondary shadow-sm">
+            <h5 class="text-white fw-bold mb-3 border-bottom border-secondary pb-2"><i class="fas fa-id-card text-primary me-2"></i> Student Introduction</h5>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="avatar-circle bg-primary text-white fs-4 fw-bold d-flex align-items-center justify-content-center rounded-circle" style="width: 50px; height: 50px;">
+                    {{ current_user.name[:1] }}
+                </div>
+                <div>
+                    <h6 class="text-white fw-bold mb-0">{{ current_user.name }}</h6>
+                    <span class="badge bg-secondary small">{{ current_user.department if current_user.department else 'General' }}</span>
+                </div>
+            </div>
+            
+            <div class="p-3 bg-dark bg-opacity-75 rounded-3 border border-secondary small">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted"><i class="fas fa-route me-1"></i> Learning Path:</span>
+                    <span class="text-white fw-semibold">{{ week.learning_path.title if week.learning_path else 'Engineering Path' }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted"><i class="fas fa-calendar-alt me-1"></i> Current Week:</span>
+                    <span class="badge bg-info text-dark">Week {{ week.week_number }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted"><i class="fas fa-tasks me-1"></i> Completed Days:</span>
+                    <span class="text-white fw-semibold">Days 1 - 5</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted"><i class="fas fa-graduation-cap me-1"></i> Day 5 Exam Score:</span>
+                    <span class="badge bg-success">Passed (90%)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-4 p-4">
+            <h5 class="text-white mb-3"><i class="fas fa-sliders-h text-warning me-2"></i> Interview Audio Controls</h5>
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-info text-start" onclick="replayQuestion()"><i class="fas fa-volume-up me-2"></i> Replay Question Audio</button>
+                <button class="btn btn-outline-warning text-start" onclick="pauseInterview()"><i class="fas fa-pause me-2"></i> Pause Interview</button>
+                <button class="btn btn-outline-success text-start" onclick="resumeInterview()"><i class="fas fa-play me-2"></i> Resume Interview</button>
+                <button class="btn btn-outline-danger text-start" onclick="endInterviewEarly()"><i class="fas fa-stop me-2"></i> End Interview & Evaluate</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const questions = {{ questions|tojson }};
+    let currentIdx = 0;
+    let qaTranscript = [];
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const micBtn = document.getElementById('interview-mic-btn');
+    const answerInput = document.getElementById('user-answer-text');
+    const micBadge = document.getElementById('mic-status-badge');
+
+    micBtn.onclick = () => {
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                micBtn.className = "btn btn-danger recording-pulse px-3";
+                micBadge.className = "badge bg-danger recording-pulse";
+                micBadge.innerHTML = '<i class="fas fa-microphone-slash me-1"></i> Recording... Speak now!';
+            };
+
+            recognition.onresult = (e) => {
+                let interim = '';
+                let finalRes = '';
+                for (let i = e.resultIndex; i < e.results.length; ++i) {
+                    if (e.results[i].isFinal) {
+                        finalRes += e.results[i][0].transcript;
+                    } else {
+                        interim += e.results[i][0].transcript;
+                    }
+                }
+                if (interim) answerInput.value = interim;
+                if (finalRes) answerInput.value = finalRes;
+            };
+
+            recognition.onend = () => {
+                micBtn.className = "btn btn-outline-danger px-3";
+                micBadge.className = "badge bg-success";
+                micBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i> Voice Captured';
+            };
+
+            recognition.onerror = (e) => {
+                micBtn.className = "btn btn-outline-danger px-3";
+                micBadge.className = "badge bg-secondary";
+                if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                    alert("Microphone access is blocked. Click the 🔒 lock icon in your browser address bar to allow Microphone access.");
+                }
+            };
+            try { recognition.start(); } catch(err){}
+        } else {
+            alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+        }
+    };
+
+    function startInterviewAudio() {
+        if (questions && questions.length > 0) {
+            speakQuestion(questions[currentIdx]);
+        }
+    }
+
+    let currentUtterance = null;
+
+    function speakQuestion(text) {
+        if (!('speechSynthesis' in window)) {
+            console.warn("Speech Synthesis is not supported in this browser.");
+            return;
+        }
+
+        // Cancel previous speech synthesis queue
+        window.speechSynthesis.cancel();
+
+        if (!text) return;
+
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.rate = 0.95;
+        utt.pitch = 1.0;
+        utt.volume = 1.0;
+
+        // Try to use a clean English voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const engVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')));
+        if (engVoice) {
+            utt.voice = engVoice;
+        }
+
+        currentUtterance = utt;
+        window.speechSynthesis.speak(utt);
+    }
+
+    function replayQuestion() {
+        if (questions && questions[currentIdx]) {
+            speakQuestion(questions[currentIdx]);
+        }
+    }
+
+    function pauseInterview() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.pause();
+        }
+    }
+
+    function resumeInterview() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.resume();
+        }
+    }
+
+    function endInterviewEarly() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        finishInterview();
+    }
+
+    // Auto-read initial question when user interacts or page loads
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (questions && questions.length > 0) {
+                speakQuestion(questions[0]);
+            }
+        }, 500);
+    });
+
+    function submitCurrentAnswer() {
+        const ans = answerInput.value.trim() || "No answer provided.";
+        qaTranscript.push({ question: questions[currentIdx], answer: ans });
+        answerInput.value = '';
+        currentIdx++;
+
+        if (currentIdx < questions.length) {
+            document.getElementById('q-num').innerText = currentIdx + 1;
+            document.getElementById('current-question').innerText = questions[currentIdx];
+            speakQuestion(questions[currentIdx]);
+        } else {
+            finishInterview();
+        }
+    }
+
+    function nextQuestion() {
+        submitCurrentAnswer();
+    }
+
+    function finishInterview() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        document.getElementById('interview-stage').classList.add('d-none');
+        document.getElementById('result-stage').classList.remove('d-none');
+
+        fetch("{{ url_for('trainee.mock_interview', day_id=day.id) }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qa_transcript: qaTranscript })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('eval-spinner').classList.add('d-none');
+            document.getElementById('eval-results').classList.remove('d-none');
+
+            const evalData = data.evaluation;
+            document.getElementById('res-tech').innerText = evalData.technical_score + '%';
+            document.getElementById('res-comm').innerText = evalData.communication_score + '%';
+            document.getElementById('res-conf').innerText = evalData.confidence_score + '%';
+            document.getElementById('res-feedback').innerText = evalData.feedback;
+        });
+    }
+</script>
+{% endblock %}

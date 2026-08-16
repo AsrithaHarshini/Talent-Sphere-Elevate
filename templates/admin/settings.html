@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="my-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h3 class="text-white fw-bold mb-1"><i class="fas fa-cog text-primary me-2"></i> System Configuration & Settings</h3>
+        <p class="text-muted mb-0">Configure enterprise completion thresholds, AI models, vector retrieval, and SMTP email parameters.</p>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('admin.settings') }}">
+    <div class="row g-4">
+        <!-- 1. Lesson Completion & Access Controls -->
+        <div class="col-md-6">
+            <div class="glass-card rounded-4 p-4 h-100 border-secondary">
+                <h5 class="text-info fw-bold mb-3"><i class="fas fa-unlock-alt me-2"></i> Lesson Progression & Completion Thresholds</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label text-white">Minimum Video Completion Percentage (%):</label>
+                    <input type="number" name="min_video_completion_pct" class="form-control bg-dark text-white border-secondary" value="{{ settings.get('min_video_completion_pct', '80') }}" min="10" max="100" required>
+                    <div class="form-text text-muted">Required video watch percentage before day completion is acknowledged.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Minimum PDF Reading Percentage (%):</label>
+                    <input type="number" name="min_pdf_reading_pct" class="form-control bg-dark text-white border-secondary" value="{{ settings.get('min_pdf_reading_pct', '80') }}" min="10" max="100" required>
+                    <div class="form-text text-muted">Required PDF pages scrolled/read percentage in embedded viewer.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Automatic Next-Day Unlock Rule:</label>
+                    <select name="auto_unlock_rules" class="form-select bg-dark text-white border-secondary">
+                        <option value="true" {% if settings.get('auto_unlock_rules', 'true') == 'true' %}selected{% endif %}>Enabled (Auto-unlock next day when requirements met)</option>
+                        <option value="false" {% if settings.get('auto_unlock_rules', 'true') == 'false' %}selected{% endif %}>Disabled (Manual Admin Unlock Only)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. AI Model & ChromaDB Vector Settings -->
+        <div class="col-md-6">
+            <div class="glass-card rounded-4 p-4 h-100 border-secondary">
+                <h5 class="text-warning fw-bold mb-3"><i class="fas fa-brain me-2"></i> Groq AI Model & Vector Retrieval</h5>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Groq LLM Model Selection:</label>
+                    <select name="groq_model" class="form-select bg-dark text-white border-secondary">
+                        <option value="llama-3.1-120b" {% if settings.get('groq_model') == 'llama-3.1-120b' %}selected{% endif %}>Groq Llama 3.1 120B (High Intelligence Enterprise Model)</option>
+                        <option value="llama-3.3-70b-versatile" {% if settings.get('groq_model') == 'llama-3.3-70b-versatile' or not settings.get('groq_model') %}selected{% endif %}>Groq Llama 3.3 70B Versatile (Fast Production Baseline)</option>
+                        <option value="llama-3.1-70b-versatile" {% if settings.get('groq_model') == 'llama-3.1-70b-versatile' %}selected{% endif %}>Groq Llama 3.1 70B Versatile</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Vector Embedding Model:</label>
+                    <input type="text" name="embedding_model" class="form-control bg-dark text-white border-secondary" value="{{ settings.get('embedding_model', 'all-MiniLM-L6-v2') }}" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Top-K Vector Retrieval Limit:</label>
+                    <input type="number" name="top_k_retrieval" class="form-control bg-dark text-white border-secondary" value="{{ settings.get('top_k_retrieval', '5') }}" min="1" max="15">
+                    <div class="form-text text-muted">Maximum chunk contexts retrieved per vector search.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. SMTP Email Configuration -->
+        <div class="col-12">
+            <div class="glass-card rounded-4 p-4 border-secondary">
+                <h5 class="text-success fw-bold mb-3"><i class="fas fa-envelope me-2"></i> SMTP Email Notification Settings</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-white">SMTP Server Host (Google Mail):</label>
+                        <input type="text" name="smtp_server" class="form-control bg-dark text-white border-secondary" placeholder="smtp.gmail.com" value="{{ settings.get('smtp_server', 'smtp.gmail.com') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-white">SMTP Port:</label>
+                        <input type="number" name="smtp_port" class="form-control bg-dark text-white border-secondary" value="{{ settings.get('smtp_port', '587') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white">SMTP Username:</label>
+                        <input type="text" name="smtp_username" class="form-control bg-dark text-white border-secondary" placeholder="admin@domain.com" value="{{ settings.get('smtp_username', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white">SMTP Password:</label>
+                        <input type="password" name="smtp_password" class="form-control bg-dark text-white border-secondary" placeholder="••••••••" value="{{ settings.get('smtp_password', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Sender Email Address:</label>
+                        <input type="email" name="smtp_sender_email" class="form-control bg-dark text-white border-secondary" placeholder="noreply@talentsphere.com" value="{{ settings.get('smtp_sender_email', '') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Enable STARTTLS Security:</label>
+                        <select name="smtp_use_tls" class="form-select bg-dark text-white border-secondary">
+                            <option value="true" {% if settings.get('smtp_use_tls', 'true') == 'true' %}selected{% endif %}>Enabled (TLS Port 587)</option>
+                            <option value="false" {% if settings.get('smtp_use_tls', 'true') == 'false' %}selected{% endif %}>Disabled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 text-end mb-4">
+            <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold">
+                <i class="fas fa-save me-2"></i> Save System Configuration
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- 4. Test Email Dispatcher Box -->
+<div class="glass-card rounded-4 p-4 border-info mb-4">
+    <h5 class="text-info fw-bold mb-2"><i class="fas fa-paper-plane me-2"></i> Test Send Real Email Right Now</h5>
+    <p class="text-muted small">Enter an email address to test sending a live account credentials email to any inbox.</p>
+    <form action="{{ url_for('admin.test_email') }}" method="POST" class="row g-2 align-items-center">
+        <div class="col-md-8">
+            <input type="email" name="target_email" class="form-control bg-dark text-white border-secondary" placeholder="Enter recipient email (e.g. trainee@domain.com or your email)..." required>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-info w-100 rounded-pill fw-bold text-dark">
+                <i class="fas fa-paper-plane me-1"></i> Send Test Email Now
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

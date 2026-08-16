@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center my-3">
+    <div>
+        <h3 class="text-white"><i class="fas fa-tools me-2 text-primary"></i> Course Builder: {{ path.title }}</h3>
+        <p class="text-muted">Manage week structures, upload PDFs & videos directly, and assign trainees.</p>
+    </div>
+    <div>
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#assignTraineeModal">
+            <i class="fas fa-user-plus me-1"></i> Assign Trainees
+        </button>
+        <form method="POST" action="{{ url_for('admin.learning_path_builder', path_id=path.id) }}" class="d-inline">
+            <input type="hidden" name="action" value="add_week">
+            <button type="submit" class="btn btn-outline-light">
+                <i class="fas fa-plus me-1"></i> Add Week
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        {% for week in path.weeks %}
+        <div class="glass-card rounded-4 p-4 mb-4 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary">6 Days Structure</span>
+                    <form method="POST" action="{{ url_for('admin.learning_path_builder', path_id=path.id) }}" class="d-inline" onsubmit="return confirm('Delete this week and all associated lessons?');">
+                        <input type="hidden" name="action" value="delete_week">
+                        <input type="hidden" name="week_id" value="{{ week.id }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" title="Delete Week"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-muted small">{{ week.description }}</p>
+
+            <div class="accordion accordion-flush" id="acc_week_{{ week.id }}">
+                {% for day in week.days %}
+                {% set lesson = day.lessons[0] if day.lessons else None %}
+                <div class="accordion-item bg-dark border-secondary rounded mb-2">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed bg-dark text-white shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_day_{{ day.id }}">
+                            <div class="d-flex justify-content-between w-100 me-3 align-items-center">
+                                <span>
+                                    {% if day.day_type == 'Lesson' %}
+                                    <i class="fas fa-book-open text-info me-2"></i>
+                                    {% elif day.day_type == 'Assessment' %}
+                                    <i class="fas fa-file-alt text-warning me-2"></i>
+                                    {% else %}
+                                    <i class="fas fa-microphone text-danger me-2"></i>
+                                    {% endif %}
+                                    <strong>Day {{ day.day_number }}:</strong> {{ day.title }}
+                                </span>
+                                <div>
+                                    {% if lesson and lesson.document %}
+                                    <span class="badge bg-danger me-1"><i class="fas fa-file-pdf me-1"></i> PDF Attached</span>
+                                    {% endif %}
+                                    {% if lesson and lesson.video_url %}
+                                    <span class="badge bg-primary me-1"><i class="fas fa-video me-1"></i> Video Media</span>
+                                    {% endif %}
+                                    <span class="badge bg-{{ 'info' if day.day_type == 'Lesson' else ('warning' if day.day_type == 'Assessment' else 'danger') }}">
+                                        {{ day.day_type }}
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse_day_{{ day.id }}" class="accordion-collapse collapse" data-bs-parent="#acc_week_{{ week.id }}">
+                        <div class="accordion-body text-white-50 small border-top border-secondary">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <p class="mb-1"><strong>Topic:</strong> {{ day.topic }}</p>
+                                    <p class="mb-1"><strong>Objectives:</strong> {{ day.objectives }}</p>
+                                    <p class="mb-1"><strong>Skills:</strong> {{ day.skills_covered }}</p>
+                                    {% if lesson and lesson.document %}
+                                    <p class="mb-1 text-info"><i class="fas fa-file-pdf me-1"></i> <strong>Attached Document:</strong> {{ lesson.document.filename }}</p>
+                                    {% endif %}
+                                    {% if lesson and lesson.video_url %}
+                                    <p class="mb-0 text-primary"><i class="fas fa-link me-1"></i> <strong>Video Source:</strong> <code>{{ lesson.video_url }}</code></p>
+                                    {% endif %}
+                                </div>
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editDayModal_{{ day.id }}">
+                                    <i class="fas fa-cloud-upload-alt me-1"></i> Upload PDF & Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="glass-card p-5 text-center text-muted">No weeks configured yet.</div>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="glass-card rounded-4 p-4 mb-4">
+            <h5 class="text-white mb-3"><i class="fas fa-users me-2 text-info"></i> Assigned Trainees</h5>
+            <ul class="list-group list-group-flush">
+                {% for prog in path.trainee_progress %}
+                <li class="list-group-item bg-transparent text-white border-secondary d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ prog.user.name }}</strong>
+                        <div class="small text-muted">Week {{ prog.current_week }}, Day {{ prog.current_day }}</div>
+                    </div>
+                    <span class="badge bg-success rounded-pill">Streak: {{ prog.streak_count }}d</span>
+                </li>
+                {% else %}
+                <li class="list-group-item bg-transparent text-muted">No trainees assigned yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modals rendered outside accordion structure -->
+{% for week in path.weeks %}
+    {% for day in week.days %}
+    {% set lesson = day.lessons[0] if day.lessons else None %}
+    <div class="modal fade" id="editDayModal_{{ day.id }}" tabindex="-1" aria-labelledby="editDayModalLabel_{{ day.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="editDayModalLabel_{{ day.id }}"><i class="fas fa-cloud-upload-alt text-warning me-2"></i> Upload Media for Day {{ day.day_number }}: {{ day.title }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin.learning_path_builder', path_id=path.id) }}" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="edit_day">
+                        <input type="hidden" name="day_id" value="{{ day.id }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Day Title</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="title" value="{{ day.title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Topic</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="topic" value="{{ day.topic }}">
+                        </div>
+
+                        <!-- Direct PDF Upload & Select -->
+                        <div class="card glass-card p-3 mb-3 border-danger">
+                            <label class="form-label text-danger fw-bold"><i class="fas fa-file-pdf me-1"></i> Option A: Upload New PDF Document</label>
+                            <input type="file" class="form-control bg-dark text-white border-secondary mb-2" name="pdf_file" accept=".pdf">
+                            
+                            <label class="form-label text-muted small mt-2">Option B: Or Select from Existing Documents</label>
+                            <select class="form-select bg-dark text-white border-secondary" name="document_id">
+                                <option value="">-- Select Existing PDF --</option>
+                                {% for doc in docs %}
+                                <option value="{{ doc.id }}" {% if lesson and lesson.document_id == doc.id %}selected{% endif %}>
+                                    {{ doc.filename }} ({{ doc.category }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Direct Video Upload & Link -->
+                        <div class="card glass-card p-3 mb-3 border-primary">
+                            <label class="form-label text-primary fw-bold"><i class="fas fa-video me-1"></i> Option A: Upload Video File (MP4, MKV, WebM)</label>
+                            <input type="file" class="form-control bg-dark text-white border-secondary mb-2" name="video_file" accept="video/*,.mp4,.mkv,.webm,.avi">
+
+                            <label class="form-label text-muted small mt-2">Option B: Or Paste Video URL (YouTube / Embed Link)</label>
+                            <input type="url" class="form-control bg-dark text-white border-secondary" name="video_url" value="{{ lesson.video_url if lesson else '' }}" placeholder="https://www.youtube.com/watch?v=rfscVS0vtbw">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Learning Objectives</label>
+                            <textarea class="form-control bg-dark text-white border-secondary" name="objectives" rows="2">{{ day.objectives }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Skills Covered</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="skills_covered" value="{{ day.skills_covered }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning"><i class="fas fa-save me-1"></i> Save & Upload Media</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
+
+<!-- Assign Trainee Modal -->
+<div class="modal fade" id="assignTraineeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Assign Trainee to Learning Path</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.learning_path_builder', path_id=path.id) }}">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="assign">
+                    <div class="mb-3">
+                        <label class="form-label">Select Trainee</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="user_id" required>
+                            {% for t in trainees %}
+                            <option value="{{ t.id }}">{{ t.name }} ({{ t.department }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Assign Path</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

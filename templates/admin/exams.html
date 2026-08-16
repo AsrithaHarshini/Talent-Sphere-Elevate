@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center my-3 flex-wrap gap-2">
+    <h3 class="text-white m-0 fw-bold"><i class="fas fa-tasks text-primary me-2"></i> Exam Management</h3>
+    <div>
+        <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#voiceExamModal">
+            <i class="fas fa-microphone me-1"></i> Voice AI Exam Generator
+        </button>
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#generateExamModal">
+            <i class="fas fa-magic me-1"></i> AI Generate Exam
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignExamModal">
+            <i class="fas fa-user-check me-1"></i> Assign Exam
+        </button>
+    </div>
+</div>
+
+<div class="glass-card rounded-4 p-3">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle m-0">
+            <thead>
+                <tr>
+                    <th>Exam Title</th>
+                    <th>Source Document</th>
+                    <th>Created Date</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in exams %}
+                <tr>
+                    <td class="fw-bold">{{ e.title }}</td>
+                    <td>{{ e.document.filename if e.document else 'General Knowledge' }}</td>
+                    <td>{{ e.created_date.strftime('%Y-%m-%d') }}</td>
+                    <td><span class="badge bg-success">Published & Assigned</span></td>
+                    <td class="text-end pe-3">
+                        <form method="POST" action="{{ url_for('admin.exams') }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this exam?');">
+                            <input type="hidden" name="action" value="delete_exam">
+                            <input type="hidden" name="exam_id" value="{{ e.id }}">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Delete Exam">
+                                <i class="fas fa-trash me-1"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted">No exams generated yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Voice AI Exam Generator Modal -->
+<div class="modal fade" id="voiceExamModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white border-warning">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning"><i class="fas fa-microphone me-2"></i> Voice AI Exam Generator Assistant</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Speak your voice command into your microphone or pick a shortcut below to dynamically generate a 5-question AI exam and publish it to all trainees.</p>
+
+                <!-- Voice Command Quick Chips -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <button class="btn btn-sm btn-outline-warning rounded-pill" onclick="setVoiceCommand('Generate exam on Python Full-Stack')">"Generate exam on Python"</button>
+                    <button class="btn btn-sm btn-outline-info rounded-pill" onclick="setVoiceCommand('Generate exam on RAG Architecture')">"Generate exam on RAG Architecture"</button>
+                    <button class="btn btn-sm btn-outline-success rounded-pill" onclick="setVoiceCommand('Generate exam from uploaded document')">"Generate exam from document"</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white fw-bold">Voice Command / Prompt:</label>
+                    <div class="input-group">
+                        <button class="btn btn-outline-danger" type="button" id="voice-exam-mic-btn" onclick="toggleVoiceExamMic()">
+                            <i class="fas fa-microphone" id="voice-exam-mic-icon"></i> Speak
+                        </button>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" id="voice-exam-input" placeholder="Click 'Speak' and say 'Generate exam on Python'...">
+                    </div>
+                </div>
+
+                <div id="voice-exam-status" class="alert alert-info py-2 px-3 small d-none">
+                    <i class="fas fa-info-circle me-1"></i> <span id="voice-exam-status-text">Processing...</span>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning fw-bold" onclick="submitVoiceExamCommand()" id="voice-exam-submit-btn">
+                    <i class="fas fa-robot me-1"></i> Generate with Voice AI
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual AI Generate Exam Modal -->
+<div class="modal fade" id="generateExamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">AI Generate Exam from PDF</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.exams') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="generate">
+                    <div class="mb-3">
+                        <label class="form-label">Exam Title</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" name="title" placeholder="e.g. Compliance & Safety Quiz" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Source Document</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="document_id" required>
+                            {% for d in docs %}
+                            <option value="{{ d.id }}">{{ d.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Questions</label>
+                        <input type="number" class="form-control bg-dark text-white border-secondary" name="num_questions" value="5" min="1" max="10">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-robot me-1"></i> Generate with AI</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Exam Modal -->
+<div class="modal fade" id="assignExamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Assign Exam to Trainee</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.exams') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="assign_exam">
+                    <div class="mb-3">
+                        <label class="form-label">Select Exam</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="exam_id" required>
+                            {% for e in exams %}
+                            <option value="{{ e.id }}">{{ e.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Trainee</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="user_id" required>
+                            {% for t in trainees %}
+                            <option value="{{ t.id }}">{{ t.name }} ({{ t.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Assign Exam</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let voiceExamListening = false;
+    let voiceExamRecognition = null;
+
+    function setVoiceCommand(text) {
+        document.getElementById('voice-exam-input').value = text;
+    }
+
+    function toggleVoiceExamMic() {
+        const micBtn = document.getElementById('voice-exam-mic-btn');
+        const micIcon = document.getElementById('voice-exam-mic-icon');
+        const inputField = document.getElementById('voice-exam-input');
+        const statusAlert = document.getElementById('voice-exam-status');
+        const statusText = document.getElementById('voice-exam-status-text');
+
+        if (voiceExamListening && voiceExamRecognition) {
+            try { voiceExamRecognition.stop(); } catch(e) {}
+            voiceExamListening = false;
+            micBtn.className = "btn btn-outline-danger";
+            micIcon.className = "fas fa-microphone";
+            statusAlert.classList.add('d-none');
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Speech recognition is not supported in your browser. Please use Google Chrome or Edge.");
+            return;
+        }
+
+        voiceExamRecognition = new SpeechRecognition();
+        voiceExamRecognition.continuous = false;
+        voiceExamRecognition.interimResults = true;
+        voiceExamRecognition.lang = 'en-US';
+
+        voiceExamRecognition.onstart = function() {
+            voiceExamListening = true;
+            micBtn.className = "btn btn-danger recording-pulse";
+            micIcon.className = "fas fa-microphone-slash";
+            statusAlert.classList.remove('d-none');
+            statusText.innerText = "Listening for exam command... Speak into your mic now.";
+        };
+
+        voiceExamRecognition.onresult = function(event) {
+            let finalTranscript = '';
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            if (interimTranscript) inputField.value = interimTranscript;
+            if (finalTranscript) {
+                inputField.value = finalTranscript;
+                statusText.innerText = `Recognized command: "${finalTranscript}". Ready to generate.`;
+            }
+        };
+
+        voiceExamRecognition.onerror = function(e) {
+            voiceExamListening = false;
+            micBtn.className = "btn btn-outline-danger";
+            micIcon.className = "fas fa-microphone";
+            statusText.innerText = "Speech error or permission blocked. Please type your command or grant mic permission.";
+        };
+
+        voiceExamRecognition.onend = function() {
+            voiceExamListening = false;
+            micBtn.className = "btn btn-outline-danger";
+            micIcon.className = "fas fa-microphone";
+        };
+
+        try {
+            voiceExamRecognition.start();
+        } catch(err) {
+            console.error(err);
+        }
+    }
+
+    function submitVoiceExamCommand() {
+        const inputField = document.getElementById('voice-exam-input');
+        const text = inputField.value.trim();
+        const submitBtn = document.getElementById('voice-exam-submit-btn');
+        const statusAlert = document.getElementById('voice-exam-status');
+        const statusText = document.getElementById('voice-exam-status-text');
+
+        if (!text) {
+            alert("Please speak or type an exam generation command (e.g., 'Generate exam on Python')");
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generating Exam with AI...';
+        statusAlert.classList.remove('d-none');
+        statusText.innerText = "AI is parsing document text and building 5-question exam...";
+
+        fetch('/admin/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: text, is_voice: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-robot me-1"></i> Generate with Voice AI';
+            alert("🎯 " + data.response);
+            window.location.reload();
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-robot me-1"></i> Generate with Voice AI';
+            alert("An error occurred while generating the exam with AI.");
+        });
+    }
+</script>
+{% endblock %}
